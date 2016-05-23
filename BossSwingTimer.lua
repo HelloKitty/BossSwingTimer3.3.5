@@ -467,7 +467,7 @@ end
 
 function BossSwingTimer:OnEnable()
 	
-	if not LSM_statusbars then
+	if (LSM_statusbars == nil) then
 		createLSMlist()
 	end
 	
