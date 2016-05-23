@@ -1,0 +1,19 @@
+## Interface: 60000
+## Author: humfras, d07.RiV (Iroared)
+## Title: BossSwingTimer
+## Notes: Displays a bar with timers for enemy auto attacks.
+## Version: 1.5
+## SavedVariables: BossSwingTimerDB
+## Dependencies: 
+## X-Curse-Packaged-Version: v1.5
+## X-Curse-Project-Name: BossSwingTimer
+## X-Curse-Project-ID: bossswingtimer
+## X-Curse-Repository-ID: wow/bossswingtimer/mainline
+## X-Curse-Packaged-Version: 1.5b
+## X-Curse-Project-Name: BossSwingTimer
+## X-Curse-Project-ID: bossswingtimer
+## X-Curse-Repository-ID: wow/bossswingtimer/mainline
+
+embeds.xml
+
+BossSwingTimer.lua
