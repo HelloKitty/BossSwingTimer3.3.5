@@ -1,10 +1,10 @@
 --- AceConfigDialog-3.0 generates AceGUI-3.0 based windows based on option tables.
 -- @class file
 -- @name AceConfigDialog-3.0
--- @release $Id: AceConfigDialog-3.0.lua 1113 2014-09-11 20:18:16Z nevcairiel $
+-- @release $Id: AceConfigDialog-3.0.lua 958 2010-07-03 10:22:29Z nevcairiel $
 
 local LibStub = LibStub
-local MAJOR, MINOR = "AceConfigDialog-3.0", 59
+local MAJOR, MINOR = "AceConfigDialog-3.0", 49
 local AceConfigDialog, oldminor = LibStub:NewLibrary(MAJOR, MINOR)
 
 if not AceConfigDialog then return end
@@ -21,10 +21,10 @@ local gui = LibStub("AceGUI-3.0")
 local reg = LibStub("AceConfigRegistry-3.0")
 
 -- Lua APIs
-local tconcat, tinsert, tsort, tremove, tsort = table.concat, table.insert, table.sort, table.remove, table.sort
+local tconcat, tinsert, tsort, tremove = table.concat, table.insert, table.sort, table.remove
 local strmatch, format = string.match, string.format
 local assert, loadstring, error = assert, loadstring, error
-local pairs, next, select, type, unpack, wipe, ipairs = pairs, next, select, type, unpack, wipe, ipairs
+local pairs, next, select, type, unpack, wipe = pairs, next, select, type, unpack, wipe
 local rawset, tostring, tonumber = rawset, tostring, tonumber
 local math_min, math_max, math_floor = math.min, math.max, math.floor
 
@@ -125,7 +125,9 @@ do
 	end
 	function del(t)
 		--delcount = delcount + 1
-		wipe(t)
+		for k in pairs(t) do
+			t[k] = nil
+		end
 		pool[t] = true
 	end
 --	function cached()
@@ -320,8 +322,8 @@ local function compareOptions(a,b)
 	end
 	local OrderA, OrderB = tempOrders[a] or 100, tempOrders[b] or 100
 	if OrderA == OrderB then
-		local NameA = (type(tempNames[a]) == "string") and tempNames[a] or ""
-		local NameB = (type(tempNames[b]) == "string") and tempNames[b] or ""
+		local NameA = (type(tempNames[a] == "string") and tempNames[a]) or ""
+		local NameB = (type(tempNames[b] == "string") and tempNames[b]) or ""
 		return NameA:upper() < NameB:upper()
 	end
 	if OrderA < 0 then
@@ -421,9 +423,6 @@ local function CleanUserData(widget, event)
 		widget:SetGroupList(nil)
 		if user.grouplist then
 			del(user.grouplist)
-		end
-		if user.orderlist then
-			del(user.orderlist)
 		end
 	end
 end
@@ -580,7 +579,6 @@ local function confirmPopup(appName, rootframe, basepath, info, message, func, .
 	t.text = message
 	t.button1 = ACCEPT
 	t.button2 = CANCEL
-	t.preferredIndex = STATICPOPUP_NUMDIALOGS
 	local dialog, oldstrata
 	t.OnAccept = function()
 		safecall(func, unpack(t))
@@ -935,7 +933,6 @@ end
 ]]
 local function BuildSelect(group, options, path, appName)
 	local groups = new()
-	local order = new()
 	local keySort = new()
 	local opts = new()
 
@@ -950,16 +947,15 @@ local function BuildSelect(group, options, path, appName)
 			local hidden = CheckOptionHidden(v, options, path, appName)
 			if not inline and not hidden then
 				groups[k] = GetOptionsMemberValue("name", v, options, path, appName)
-				tinsert(order, k)
 			end
 			path[#path] = nil
 		end
 	end
 
-	del(opts)
 	del(keySort)
+	del(opts)
 
-	return groups, order
+	return groups
 end
 
 local function BuildSubGroups(group, tree, options, path, appName)
@@ -1176,66 +1172,20 @@ local function FeedOptions(appName, options,container,rootframe,path,group,inlin
 
 				elseif v.type == "select" then
 					local values = GetOptionsMemberValue("values", v, options, path, appName)
-					if v.style == "radio" then
-						local disabled = CheckOptionDisabled(v, options, path, appName)
-						local width = GetOptionsMemberValue("width",v,options,path,appName)
-						control = gui:Create("InlineGroup")
-						control:SetLayout("Flow")
-						control:SetTitle(name)
-						control.width = "fill"
-
-						control:PauseLayout()
-						local optionValue = GetOptionsMemberValue("get",v, options, path, appName)
-						local t = {}
-						for value, text in pairs(values) do
-							t[#t+1]=value
-						end
-						tsort(t)
-						for k, value in ipairs(t) do
-							local text = values[value]
-							local radio = gui:Create("CheckBox")
-							radio:SetLabel(text)
-							radio:SetUserData("value", value)
-							radio:SetUserData("text", text)
-							radio:SetDisabled(disabled)
-							radio:SetType("radio")
-							radio:SetValue(optionValue == value)
-							radio:SetCallback("OnValueChanged", ActivateMultiControl)
-							InjectInfo(radio, options, v, path, rootframe, appName)
-							control:AddChild(radio)
-							if width == "double" then
-								radio:SetWidth(width_multiplier * 2)
-							elseif width == "half" then
-								radio:SetWidth(width_multiplier / 2)
-							elseif width == "full" then
-								radio.width = "fill"
-							else
-								radio:SetWidth(width_multiplier)
-							end
-						end
-						control:ResumeLayout()
-						control:DoLayout()
-					else
-						local controlType = v.dialogControl or v.control or "Dropdown"
-						control = gui:Create(controlType)
-						if not control then
-							geterrorhandler()(("Invalid Custom Control Type - %s"):format(tostring(controlType)))
-							control = gui:Create("Dropdown")
-						end
-						local itemType = v.itemControl
-						if itemType and not gui:GetWidgetVersion(itemType) then
-							geterrorhandler()(("Invalid Custom Item Type - %s"):format(tostring(itemType)))
-							itemType = nil
-						end
-						control:SetLabel(name)
-						control:SetList(values, nil, itemType)
-						local value = GetOptionsMemberValue("get",v, options, path, appName)
-						if not values[value] then
-							value = nil
-						end
-						control:SetValue(value)
-						control:SetCallback("OnValueChanged", ActivateControl)
+					local controlType = v.dialogControl or v.control or "Dropdown"
+					control = gui:Create(controlType)
+					if not control then
+						geterrorhandler()(("Invalid Custom Control Type - %s"):format(tostring(controlType)))
+						control = gui:Create("Dropdown")
 					end
+					control:SetLabel(name)
+					control:SetList(values)
+					local value = GetOptionsMemberValue("get",v, options, path, appName)
+					if not values[value] then
+						value = nil
+					end
+					control:SetValue(value)
+					control:SetCallback("OnValueChanged",ActivateControl)
 
 				elseif v.type == "multiselect" then
 					local values = GetOptionsMemberValue("values", v, options, path, appName)
@@ -1322,7 +1272,7 @@ local function FeedOptions(appName, options,container,rootframe,path,group,inlin
 				elseif v.type == "color" then
 					control = gui:Create("ColorPicker")
 					control:SetLabel(name)
-					control:SetHasAlpha(GetOptionsMemberValue("hasAlpha",v, options, path, appName))
+					control:SetHasAlpha(v.hasAlpha)
 					control:SetColor(GetOptionsMemberValue("get",v, options, path, appName))
 					control:SetCallback("OnValueChanged",ActivateControl)
 					control:SetCallback("OnValueConfirmed",ActivateControl)
@@ -1639,12 +1589,16 @@ function AceConfigDialog:FeedGroup(appName,options,container,rootframe,path, isR
 				status.groups = {}
 			end
 			select:SetStatusTable(status.groups)
-			local grouplist, orderlist = BuildSelect(group, options, path, appName)
-			select:SetGroupList(grouplist, orderlist)
+			local grouplist = BuildSelect(group, options, path, appName)
+			select:SetGroupList(grouplist)
 			select:SetUserData("grouplist", grouplist)
-			select:SetUserData("orderlist", orderlist)
-
-			local firstgroup = orderlist[1]
+			local firstgroup
+			for k, v in pairs(grouplist) do
+				if not firstgroup or k < firstgroup then
+					firstgroup = k
+				end
+			end
+			
 			if firstgroup then
 				select:SetGroup((GroupExists(appName, options, path,status.groups.selected) and status.groups.selected) or firstgroup)
 			end
@@ -1815,14 +1769,6 @@ function AceConfigDialog:Open(appName, container, ...)
 	end
 	for n = 1, select("#",...) do
 		tinsert(path, (select(n, ...)))
-	end
-	
-	local option = options
-	if type(container) == "table" and container.type == "BlizOptionsGroup" and #path > 0 then
-		for i = 1, #path do
-			option = options.args[path[i]]
-		end
-		name = format("%s - %s", name, GetOptionsMemberValue("name", option, options, path, appName))
 	end
 	
 	--if a container is given feed into that

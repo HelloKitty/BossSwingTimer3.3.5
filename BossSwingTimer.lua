@@ -11,6 +11,7 @@ local k,v,_
 BossSwingTimer = LibStub("AceAddon-3.0"):NewAddon("BossSwingTimer", "AceConsole-3.0", "AceEvent-3.0")
 
 local BossSwingTimerPath = "Interface\\AddOns\\BossSwingTimer\\"
+local BossSwingTimerMediaPath = "Interface\\AddOns\\BossSwingTimer\\Media\\"
 
 local time = GetTime()
 
@@ -145,7 +146,7 @@ local LSM_statusbars
 local LSM_statusbars_optionsList
 local function createLSMlist()
 	LSM_statusbars = LibStub:GetLibrary("LibSharedMedia-3.0",true):HashTable("statusbar")
-	LSM_statusbars[" Default"] = BossSwingTimerPath .. "glaze.tga"
+	LSM_statusbars[" Default"] = BossSwingTimerMediaPath .. "glaze.tga"
 	
 	local t = {}
 	
@@ -466,7 +467,7 @@ end
 
 function BossSwingTimer:OnEnable()
 	
-	if not LSM_statusbars then
+	if (LSM_statusbars == nil) then
 		createLSMlist()
 	end
 	
@@ -648,7 +649,7 @@ function BossSwingTimer:CreateTick()
 		return tremove(self.texpool)
 	end
 	local result = self.bar:CreateTexture(nil, "ARTWORK")
-	result:SetTexture(BossSwingTimerPath .. "tick.tga")
+	result:SetTexture(BossSwingTimerMediaPath .. "tick.tga")
 	result:SetTexCoord(0.40625, 0.5625, 0, 1)
 	result:SetPoint("TOP", self.bar, "TOP", 0, 0)
 	result:SetPoint("BOTTOM", self.bar, "BOTTOM", 0, 0)
@@ -678,7 +679,7 @@ function BossSwingTimer:OnUpdate(elapsed)
 	local length = self.db.profile.frame.length
 	
 	if self.db.profile.frame.lag then
-		local _,_,_,lag = GetNetStats()
+		local lag = select(3,GetNetStats())
 		--lag = lag / 1000
 		if lag > length then
 			lag = length

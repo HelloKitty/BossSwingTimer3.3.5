@@ -1,6 +1,6 @@
 --[[
 LibDualSpec-1.0 - Adds dual spec support to individual AceDB-3.0 databases
-Copyright (C) 2009-2012 Adirelle
+Copyright (C) 2009 Adirelle
 
 All rights reserved.
 
@@ -31,27 +31,21 @@ NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 --]]
 
-local MAJOR, MINOR = "LibDualSpec-1.0", 12
+local MAJOR, MINOR = "LibDualSpec-1.0", 4
 assert(LibStub, MAJOR.." requires LibStub")
-local lib, minor = LibStub:NewLibrary(MAJOR, MINOR)
+local lib = LibStub:NewLibrary(MAJOR, MINOR)
 if not lib then return end
 
 -- ----------------------------------------------------------------------------
 -- Library data
 -- ----------------------------------------------------------------------------
 
+lib.talentGroup = lib.talentGroup or GetActiveTalentGroup()
 lib.eventFrame = lib.eventFrame or CreateFrame("Frame")
 
 lib.registry = lib.registry or {}
 lib.options = lib.options or {}
 lib.mixin = lib.mixin or {}
-
--- Rename .talent* to .spec*
-if minor and minor < 11 then
-	lib.specLoaded = lib.talentsLoaded
-	lib.specGroup = lib.talentGroup
-	lib.talentsLoaded, lib.talentGroup = nil, nil
-end
 
 -- ----------------------------------------------------------------------------
 -- Locals
@@ -64,13 +58,6 @@ local mixin = lib.mixin
 -- "Externals"
 local AceDB3 = LibStub('AceDB-3.0', true)
 local AceDBOptions3 = LibStub('AceDBOptions-3.0', true)
-
--- ----------------------------------------------------------------------------
--- MoP compatibility
--- ----------------------------------------------------------------------------
-
-local GetActiveSpecGroup = GetActiveSpecGroup or GetActiveTalentGroup
-local GetNumSpecGroups = GetNumSpecGroups or GetNumTalentGroups
 
 -- ----------------------------------------------------------------------------
 -- Localization
@@ -89,47 +76,37 @@ do
 
 	local locale = GetLocale()
 	if locale == "frFR" then
-		L_DUALSPEC_DESC = "Lorsqu'elle est activée, cette fonctionnalité vous permet de choisir un profil différent pour chaque spécialisation de talents.  Le second profil sera échangé avec le profil courant chaque fois que vous passerez d'une spécialisation à l'autre."
-		L_DUAL_PROFILE = "Second profil"
-		L_DUAL_PROFILE_DESC = "Sélectionnez le profil à échanger avec le profil courant lors du changement de spécialisation."
-		L_ENABLED = "Activez le second profil"
-		L_ENABLED_DESC = "Cochez cette case pour échanger automatiquement les profils lors d'un changement de spécialisation."
+		L_DUALSPEC_DESC = "Lorsqu'elle est activée, cette fonctionnalité vous permet "..
+			"de choisir un profil différent pour chaque spécialisation de talents. "..
+			"Le second profil sera échangé avec le profil courant chaque fois que vous "..
+			"passerez d'une spécialisation à l'autre."
+		L_ENABLED = 'Activez le second profil'
+		L_ENABLED_DESC = "Cochez cette case pour échanger automatiquement les profils "..
+			"lors d'un changement de spécialisation."
+		L_DUAL_PROFILE = 'Second profil'
+		L_DUAL_PROFILE_DESC = "Sélectionnez le profil à échanger avec le profil courant "..
+			"lors du changement de spécialisation."
 	elseif locale == "deDE" then
-		L_DUALSPEC_DESC = "Wenn aktiv, wechselt dieses Feature bei jedem Wechsel der dualen Talentspezialisierung das Profil. Das duale Profil wird beim Wechsel automatisch mit dem derzeit aktiven Profil getauscht."
 		L_DUAL_PROFILE = "Duales Profil"
-		L_DUAL_PROFILE_DESC = "Wähle das Profil, das beim Wechsel der Talente aktiviert wird."
+		L_DUAL_PROFILE_DESC = "W\195\164hle das Profil, das beim Wechsel der Talente aktiviert wird."
+		L_DUALSPEC_DESC = "Wenn aktiv, wechselt dieses Feature bei jedem Wechsel "..
+			"der dualen Talentspezialisierung das Profil. Das duale Profil wird beim "..
+			"Wechsel automatisch mit dem derzeit aktiven Profil getauscht."
 		L_ENABLED = "Aktiviere Duale Profile"
-		L_ENABLED_DESC = "Aktiviere diese Option, um beim Talentwechsel automatisch zwischen den Profilen zu wechseln."
-	elseif locale == "koKR" then
-		L_DUALSPEC_DESC = "이중 특성에 의하여 다른 프로필을 선택할 수 있게 합니다. 이중 프로필은 현재 프로필과 번갈아서 특성이 변경될 때 같이 적용됩니다."
-		L_DUAL_PROFILE = "이중 프로필"
-		L_DUAL_PROFILE_DESC = "특성이 바뀔 때 프로필을 선택합니다."
-		L_ENABLED = "이중 프로필 사용"
-		L_ENABLED_DESC = "특성이 변경 될때 자동으로 프로필을 변경하도록 선택합니다."
-	elseif locale == "ruRU" then
-		L_DUALSPEC_DESC = "Двойной профиль позволяет вам выбрать различные профили для каждой раскладки талантов. Профили будут переключаться каждый раз, когда вы переключаете раскладку талантов."
-		L_DUAL_PROFILE = "Второй профиль"
-		L_DUAL_PROFILE_DESC = "Выберите профиль, который необходимо активировать при переключениии талантов."
-		L_ENABLED = "Включить двойной профиль"
-		L_ENABLED_DESC = "Включите эту опцию для автоматического переключения между профилями при переключении раскладки талантов."
+		L_ENABLED_DESC = "Aktiviere diese Option, um beim Talentwechsel automatisch "..
+			"zwischen den Profilen zu wechseln."
 	elseif locale == "zhCN" then
-		L_DUALSPEC_DESC = "启时，你可以为你的双天赋设定另一组配置文件，你的双重配置文件将在你转换天赋时自动与目前使用配置文件交换。"
 		L_DUAL_PROFILE = "双重配置文件"
 		L_DUAL_PROFILE_DESC = "选择转换天赋时所要使用的配置文件"
+		L_DUALSPEC_DESC = "启时，你可以为你的双天赋设定另一组配置文件，你的双重配置文件将在你转换天赋时自动与目前使用配置文件交换。"
 		L_ENABLED = "开启双重配置文件"
 		L_ENABLED_DESC = "勾选以便转换天赋时自动交换配置文件。"
 	elseif locale == "zhTW" then
 		L_DUALSPEC_DESC = "啟用時，你可以為你的雙天賦設定另一組設定檔。你的雙設定檔將在你轉換天賦時自動與目前使用設定檔交換。"
-		L_DUAL_PROFILE = "雙設定檔"
-		L_DUAL_PROFILE_DESC = "選擇轉換天賦後所要使用的設定檔"
 		L_ENABLED = "啟用雙設定檔"
 		L_ENABLED_DESC = "勾選以在轉換天賦時自動交換設定檔"
-	elseif locale == "esES" then
-		L_DUALSPEC_DESC = "Si está activa, esta característica te permite seleccionar un perfil distinto para cada configuración de talentos. El perfil secundario será intercambiado por el activo cada vez que cambies de una configuración de talentos a otra."
-		L_DUAL_PROFILE = "Perfil secundario"
-		L_DUAL_PROFILE_DESC = "Elige el perfil secundario que se usará cuando cambies de talentos."
-		L_ENABLED = "Activar perfil secundario"
-		L_ENABLED_DESC = "Activa esta casilla para alternar automáticamente entre prefiles cuando cambies de talentos."
+		L_DUAL_PROFILE = "雙設定檔"
+		L_DUAL_PROFILE_DESC = "選擇轉換天賦後所要使用的設定檔"
 	end
 end
 
@@ -137,7 +114,7 @@ end
 -- Mixin
 -- ----------------------------------------------------------------------------
 
---- Get dual spec feature status.
+--- Get dual spec feature status. 
 -- @return (boolean) true is dual spec feature enabled.
 -- @name enhancedDB:IsDualSpecEnabled
 function mixin:IsDualSpecEnabled()
@@ -149,10 +126,10 @@ end
 -- @name enhancedDB:SetDualSpecEnabled
 function mixin:SetDualSpecEnabled(enabled)
 	local db = registry[self].db
-	if enabled and not db.char.specGroup then
-		db.char.specGroup = lib.specGroup
+	if enabled and not db.char.talentGroup then
+		db.char.talentGroup = lib.talentGroup
 		db.char.profile = self:GetCurrentProfile()
-		db.char.enabled = true
+		db.char.enabled = true	
 	else
 		db.char.enabled = enabled
 		self:CheckDualSpecState()
@@ -169,7 +146,7 @@ end
 
 --- Set the alternate profile name.
 -- No validation are done to ensure the profile is valid.
--- @param profileName (string) the profile name to use.
+-- @param profileName (string) the profile name to use. 
 -- @name enhancedDB:SetDualSpecProfile
 function mixin:SetDualSpecProfile(profileName)
 	registry[self].db.char.profile = profileName
@@ -184,13 +161,13 @@ end
 -- @name enhancedDB:CheckDualSpecState
 function mixin:CheckDualSpecState()
 	local db = registry[self].db
-	if lib.specLoaded and db.char.enabled and db.char.specGroup ~= lib.specGroup then
+	if db.char.enabled and db.char.talentGroup ~= lib.talentGroup then
 		local currentProfile = self:GetCurrentProfile()
 		local newProfile = db.char.profile
-		db.char.specGroup = lib.specGroup
+		db.char.talentGroup = lib.talentGroup
 		if newProfile ~= currentProfile then
-			db.char.profile = currentProfile
 			self:SetProfile(newProfile)
+			db.char.profile = currentProfile
 		end
 	end
 end
@@ -208,14 +185,6 @@ end
 -- Upgrade existing mixins
 for target in pairs(registry) do
 	EmbedMixin(target)
-end
-
--- Actually enhance the database
--- This is used on first initialization and everytime the database is reset using :ResetDB
-function lib:_EnhanceDatabase(event, target)
-	registry[target].db = target:GetNamespace(MAJOR, true) or target:RegisterNamespace(MAJOR)
-	EmbedMixin(target)
-	target:CheckDualSpecState()
 end
 
 --- Embed dual spec feature into an existing AceDB-3.0 database.
@@ -236,9 +205,10 @@ function lib:EnhanceDatabase(target, name)
 	elseif registry[target] then
 		return
 	end
-	registry[target] = { name = name }
-	lib:_EnhanceDatabase("EnhanceDatabase", target)
-	target.RegisterCallback(lib, "OnDatabaseReset", "_EnhanceDatabase")
+	local db = target:GetNamespace(MAJOR, true) or target:RegisterNamespace(MAJOR)
+	registry[target] = { name = name, db = db	}
+	EmbedMixin(target)
+	target:CheckDualSpecState()
 end
 
 -- ----------------------------------------------------------------------------
@@ -246,7 +216,7 @@ end
 -- ----------------------------------------------------------------------------
 
 local function NoDualSpec()
-	return GetNumSpecGroups() == 1
+	return GetNumTalentGroups() == 1
 end
 
 options.dualSpecDesc = {
@@ -330,27 +300,13 @@ end
 -- ----------------------------------------------------------------------------
 
 lib.eventFrame:RegisterEvent('PLAYER_TALENT_UPDATE')
-if not lib.specLoaded then
-	lib.eventFrame:RegisterEvent('ADDON_LOADED')
-end
-lib.eventFrame:SetScript('OnEvent', function(_, event)
-	-- Before the first PLAYER_TALENT_UPDATE, GetActiveSpecGroup() always returns 1.
-	-- However, when LDS is loaded on demand, we cannot afford to wait for a PLAYER_TALENT_UPDATE.
-	-- So we wait either for any PLAYER_TALENT_UPDATE or for an ADDON_LOADED when IsLoggedIn() yields true.
-	if event == 'ADDON_LOADED' and not IsLoggedIn() then
-		return
-	end
-	if not lib.specLoaded then
-		lib.specLoaded = true
-		lib.eventFrame:UnregisterEvent('ADDON_LOADED')
-	end
-	local newSpecGroup = GetActiveSpecGroup()
-	if lib.specGroup ~= newSpecGroup then
-		lib.specGroup = newSpecGroup
+lib.eventFrame:SetScript('OnEvent', function()
+	local newTalentGroup = GetActiveTalentGroup()
+	if lib.talentGroup ~= newTalentGroup then
+		lib.talentGroup = newTalentGroup
 		for target in pairs(registry) do
 			target:CheckDualSpecState()
 		end
 	end
 end)
-
 
