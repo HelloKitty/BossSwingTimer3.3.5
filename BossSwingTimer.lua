@@ -682,7 +682,7 @@ function BossSwingTimer:OnUpdate(elapsed)
 
 	local length = self.db.profile.frame.length / 1000
 	for k, v in pairs(self.swings) do
-		if not v.next or v.next < time then
+		if not v.next or v.next < GetTime() then
 			v.next = nil
 			if v.tick then
 				self:RecycleTick(v.tick)
@@ -702,7 +702,7 @@ function BossSwingTimer:OnUpdate(elapsed)
 				c = color
 			end
 			v.tick:SetVertexColor(c.r, c.g, c.b, alpha)
-			v.tick:SetPoint("LEFT", self.bar, "LEFT", v.next - GetTime() / length * self.db.profile.frame.width - 2, 0)
+			v.tick:SetPoint("LEFT", self.bar, "LEFT", (v.next - GetTime()) / length * self.db.profile.frame.width, 0)
 			if special[k] then
 				v.tick:SetDrawLayer("ARTWORK", 2)
 			else
