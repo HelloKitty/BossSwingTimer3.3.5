@@ -133,8 +133,7 @@ BossSwingTimer.swings = {}
 local unitList = {{id = "target", color = {r = 1, g = 0.2, b = 0.2}}, {id = "focus", color = {r = 1, g = 1, b = 0}}}
 
 local function npcid(guid)
-	local unitType, _, _, _, _, npcID = strsplit("-", guid or "")
-	return npcID
+	return tonumber(guid:sub(-10, -7), 16) -- suppose to do some bit math to get NPC id from GUID. See http://wowwiki.wikia.com/wiki/API_UnitGUID?oldid=2401007
 end
 local function isnpc(guid)
 
