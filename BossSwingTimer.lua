@@ -679,7 +679,7 @@ function BossSwingTimer:OnUpdate(elapsed)
 	local length = self.db.profile.frame.length
 	
 	if self.db.profile.frame.lag then
-		local _,_,_,lag = GetNetStats()
+		local lag = select(3,GetNetStats())
 		--lag = lag / 1000
 		if lag > length then
 			lag = length
