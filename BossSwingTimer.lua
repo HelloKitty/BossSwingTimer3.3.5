@@ -137,8 +137,17 @@ local function npcid(guid)
 	return npcID
 end
 local function isnpc(guid)
-	if strfind(guid, "^Creature") or strfind(guid, "^Vehicle") then
+
+	-- For info on 3.3.5 implementation of GUIDs visit http://wowwiki.wikia.com/wiki/API_UnitGUID?oldid=2401007
+
+	-- We need to check the mask for if it's an NPC or not
+	local B = tonumber(guid:sub(5,5), 16)
+	local maskedB = B % 8 -- x % 8 has the same effect as x & 0x7 on numbers <= 0xf
+
+	if maskedB == 3 then-- 3 is NPC
 		return true
+	else
+		return false
 	end
 end
 
@@ -746,7 +755,11 @@ function BossSwingTimer:COMBAT_LOG_EVENT_UNFILTERED(mainevent, timestamp, event,
 
 	if sourceGUID == "0x0000000000000000" or sourceGUID == nil or sourceName == nil then
 		return
-	end --check for environmental damage	
+	end --check for environmental damage
+
+	if(isnpc(sourceGUID)) then
+		message("Source is NPC")
+	end
 
 	if (event == "SWING_DAMAGE" or event == "SWING_MISSED") and destGUID == UnitGUID("player") and isnpc(sourceGUID) then
 		self:OnSwing(GetTime(), sourceGUID, event == "SWING_DAMAGE")
