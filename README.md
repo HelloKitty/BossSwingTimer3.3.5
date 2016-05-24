@@ -8,7 +8,11 @@ Currently there is no support for dual wielding enemies, as the combat log API d
 
 ##Commands
 
-[TBA]
+/bst enable - Enables the addon.
+
+/bst disable - Disables the addon.
+
+/bst config - Open the configuration dialog of the addon.
 
 ##License
 
