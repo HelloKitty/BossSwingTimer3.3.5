@@ -133,11 +133,11 @@ BossSwingTimer.swings = {}
 local unitList = {{id = "target", color = {r = 1, g = 0.2, b = 0.2}}, {id = "focus", color = {r = 1, g = 1, b = 0}}}
 
 local function npcid(guid)
-	return tonumber(guid:sub(-10, -7), 16) -- suppose to do some bit math to get NPC id from GUID. See http://wowwiki.wikia.com/wiki/API_UnitGUID?oldid=2401007
+	return tonumber(guid:sub(-10, -7), 16) -- suppose to do some bit math to get NPC id from GUID. See http://wowwiki.wikia.com/wiki/API_UnitGUID?oldid=2368080
 end
 local function isnpc(guid)
 
-	-- For info on 3.3.5 implementation of GUIDs visit http://wowwiki.wikia.com/wiki/API_UnitGUID?oldid=2401007
+	-- For info on 3.3.5 implementation of GUIDs visit http://wowwiki.wikia.com/wiki/API_UnitGUID?oldid=2368080
 
 	-- We need to check the mask for if it's an NPC or not
 	local B = tonumber(guid:sub(5,5), 16)
@@ -145,8 +145,6 @@ local function isnpc(guid)
 
 	if maskedB == 3 then-- 3 is NPC
 		return true
-	else
-		return false
 	end
 end
 
@@ -624,7 +622,7 @@ function BossSwingTimer:UpdateAttackSpeeds()
 	end
 end
 
-function BossSwingTimer:OnSwing(time, guid, damage)
+function BossSwingTimer:OnSwing(time, guid)
 	time = time
 	self:UpdateAttackSpeeds()
 
@@ -643,9 +641,6 @@ function BossSwingTimer:OnSwing(time, guid, damage)
 	end
 	if speed then
 		self.swings[guid].next = time + speed
-		if damage then
-			self.swings[guid].damage = damage
-		end
 	end
 end
 
@@ -675,8 +670,6 @@ local alpha = 1
 local color = {r = 0.7, g = 0.7, b = 0.7}
 function BossSwingTimer:OnUpdate(elapsed)
 	
-	time = time + elapsed
-	
 	for _, u in ipairs(unitList) do
 		local uid = UnitGUID(u.id)
 		if uid then
@@ -684,35 +677,21 @@ function BossSwingTimer:OnUpdate(elapsed)
 		end
 	end
 
-	local length = self.db.profile.frame.length
-	
-	if self.db.profile.frame.lag then
-		local lag = select(3,GetNetStats())
-		--lag = lag / 1000
-		if lag > length then
-			lag = length
-		end
-		local lagwidth = lag / length
-		self.bar.lag:SetWidth(lagwidth * self.db.profile.frame.width)
-		self.bar.lag:SetTexCoord(0,lagwidth,0,1)
-		self.bar.background:SetTexCoord(lagwidth,1,0,1)
-	end
+	--GetNetStats only has 3 parameters in 3.3.5. Not important though. jitter is what we need but can't get that so I'm removing lag bar functionality
+	local lag = 0
 
-	local maxDamage = 1
 	local length = self.db.profile.frame.length / 1000
 	for k, v in pairs(self.swings) do
-		if not v.next or v.next < time then
+		if not v.next or v.next < GetTime() then
 			v.next = nil
 			if v.tick then
 				self:RecycleTick(v.tick)
 				v.tick = nil
 			end
-		elseif v.damage and v.damage > maxDamage then
-			maxDamage = v.damage
 		end
 	end
 	for k, v in pairs(self.swings) do
-		if v.next and v.next < time + length then
+		if v.next and v.next < GetTime() + length then
 			if not v.tick then
 				v.tick = self:CreateTick()
 			end
@@ -720,13 +699,10 @@ function BossSwingTimer:OnUpdate(elapsed)
 			if special[k] then
 				c = special[k]
 			else
-				if v.damage and v.damage < maxDamage then
-					alpha = v.damage / maxDamage
-				end
 				c = color
 			end
 			v.tick:SetVertexColor(c.r, c.g, c.b, alpha)
-			v.tick:SetPoint("LEFT", self.bar, "LEFT", (v.next - time) / length * self.db.profile.frame.width - 2, 0)
+			v.tick:SetPoint("LEFT", self.bar, "LEFT", (v.next - GetTime()) / length * self.db.profile.frame.width, 0)
 			if special[k] then
 				v.tick:SetDrawLayer("ARTWORK", 2)
 			else
@@ -747,7 +723,7 @@ local events = {
 	["UNIT_DIED"] = true,
 }
 
-function BossSwingTimer:COMBAT_LOG_EVENT_UNFILTERED(mainevent, timestamp, event, sourceGUID, sourceName, sourceFlags, destGUID, destName, destFlags)
+function BossSwingTimer:COMBAT_LOG_EVENT_UNFILTERED(mainevent, timestamp, event, sourceGUID, sourceName, sourceFlags, destGUID, destName, destFlags, ...)
 	if not events[event] then
 		return
 	end
@@ -756,12 +732,8 @@ function BossSwingTimer:COMBAT_LOG_EVENT_UNFILTERED(mainevent, timestamp, event,
 		return
 	end --check for environmental damage
 
-	if(isnpc(sourceGUID)) then
-		message("Source is NPC")
-	end
-
-	if (event == "SWING_DAMAGE" or event == "SWING_MISSED") and destGUID == UnitGUID("player") and isnpc(sourceGUID) then
-		self:OnSwing(GetTime(), sourceGUID, event == "SWING_DAMAGE")
+	if (event == "SWING_DAMAGE" or event == "SWING_MISSED") and isnpc(sourceGUID) then
+			self:OnSwing(GetTime(), sourceGUID)
 	elseif event == "UNIT_DIED" then
 		local v = BossSwingTimer.swings[destGUID]
 		if v and v.tick then
