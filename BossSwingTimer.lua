@@ -133,12 +133,20 @@ BossSwingTimer.swings = {}
 local unitList = {{id = "target", color = {r = 1, g = 0.2, b = 0.2}}, {id = "focus", color = {r = 1, g = 1, b = 0}}}
 
 local function npcid(guid)
-	local unitType, _, _, _, _, npcID = strsplit("-", guid or "")
-	return npcID
+	return tonumber(guid:sub(-10, -7), 16) -- suppose to do some bit math to get NPC id from GUID. See http://wowwiki.wikia.com/wiki/API_UnitGUID?oldid=2401007
 end
 local function isnpc(guid)
-	if strfind(guid, "^Creature") or strfind(guid, "^Vehicle") then
+
+	-- For info on 3.3.5 implementation of GUIDs visit http://wowwiki.wikia.com/wiki/API_UnitGUID?oldid=2401007
+
+	-- We need to check the mask for if it's an NPC or not
+	local B = tonumber(guid:sub(5,5), 16)
+	local maskedB = B % 8 -- x % 8 has the same effect as x & 0x7 on numbers <= 0xf
+
+	if maskedB == 3 then-- 3 is NPC
 		return true
+	else
+		return false
 	end
 end
 
@@ -738,11 +746,22 @@ local events = {
 	["SWING_MISSED"] = true,
 	["UNIT_DIED"] = true,
 }
-function BossSwingTimer:COMBAT_LOG_EVENT_UNFILTERED(mainevent, timestamp, event, hideCaster, sourceGUID, sourceName, sourceFlags, sourceRaidFlags, destGUID, destName, destFlags, destRaidFlags, ...)
-	if not events[event] then return end
-	if sourceGUID == "0x0000000000000000" or sourceGUID == nil or sourceName == nil then return end	--check for environmental damage
+
+function BossSwingTimer:COMBAT_LOG_EVENT_UNFILTERED(mainevent, timestamp, event, sourceGUID, sourceName, sourceFlags, destGUID, destName, destFlags)
+	if not events[event] then
+		return
+	end
+
+	if sourceGUID == "0x0000000000000000" or sourceGUID == nil or sourceName == nil then
+		return
+	end --check for environmental damage
+
+	if(isnpc(sourceGUID)) then
+		message("Source is NPC")
+	end
+
 	if (event == "SWING_DAMAGE" or event == "SWING_MISSED") and destGUID == UnitGUID("player") and isnpc(sourceGUID) then
-		self:OnSwing(GetTime(), sourceGUID, event == "SWING_DAMAGE" and select(4, ...))
+		self:OnSwing(GetTime(), sourceGUID, event == "SWING_DAMAGE")
 	elseif event == "UNIT_DIED" then
 		local v = BossSwingTimer.swings[destGUID]
 		if v and v.tick then
